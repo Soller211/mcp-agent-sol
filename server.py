@@ -79,6 +79,7 @@ def search_issues(repo: str, query: str = "", limit: int = 30) -> dict:
     repo: "owner/nombre".
     query: filtros de GitHub tal cual. Ejemplos: "is:pr is:merged merged:2022-10-01..2022-10-31",
     "is:issue is:open", "is:issue closed:>=2026-09-20", "label:bug", texto libre.
+    Incluye siempre is:issue o is:pr (GitHub lo exige con tokens fine-grained).
     No admite repo:/org:/user:, OR/AND/NOT ni paréntesis: haz una búsqueda por cada consulta.
     limit: máximo de resultados (tope 100).
     Devuelve total_count (total real en GitHub) e items (como mucho `limit`).
