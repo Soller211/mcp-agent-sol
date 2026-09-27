@@ -12,7 +12,7 @@ quien haga fork.
 ## Arquitectura
 
 ```
-usuario ──▶ agent.py (Claude Agent SDK) ──stdio/MCP──▶ server.py (FastMCP) ──HTTPS──▶ GitHub REST API
+usuario ──▶ agent.py (Claude Agent SDK) ──stdio/MCP──▶ server.py (MCPServer) ──HTTPS──▶ GitHub REST API
 ```
 
 - `server.py` no sabe nada de Claude: solo sabe acceder a GitHub.
@@ -23,7 +23,7 @@ usuario ──▶ agent.py (Claude Agent SDK) ──stdio/MCP──▶ server.py
 
 ### server.py
 
-Servidor MCP con FastMCP (MCP Python SDK), transporte stdio, cliente `httpx`.
+Servidor MCP con `MCPServer` (MCP Python SDK 2.x; en 1.x se llamaba `FastMCP`), transporte stdio, cliente `httpx`.
 
 **`search_issues(repo: str, query: str = "", limit: int = 30)`**
 - Llama a `GET /search/issues` con `q = "repo:{repo} {query}"`, `per_page = min(limit, 100)`.
@@ -31,7 +31,7 @@ Servidor MCP con FastMCP (MCP Python SDK), transporte stdio, cliente `httpx`.
   `label:bug`, `merged:2022-10-01..2022-10-31`, texto libre, ...).
 - Devuelve `{total_count, items: [...]}`; cada item contiene: `number`, `title`,
   `type` (`issue`|`pr`), `state`, `merged` (bool, solo PRs), `author`, `labels`,
-  `created_at`, `closed_at`, `merged_at`, `url`, `body` (primeros ~300 caracteres).
+  `created_at`, `updated_at`, `closed_at`, `merged_at`, `url`, `body` (primeros ~300 caracteres).
 - Solo una página. Marcado con `ponytail:` → paginar cuando un repo lo necesite.
 
 **`get_issue(repo: str, number: int)`**
@@ -42,7 +42,8 @@ Servidor MCP con FastMCP (MCP Python SDK), transporte stdio, cliente `httpx`.
 error: "Falta GITHUB_TOKEN; exporta uno o ejecuta `gh auth login`".
 
 **Errores de GitHub** (404, rate limit, etc.): se lanzan como error de herramienta
-con el mensaje de GitHub, para que el modelo lo lea y lo explique.
+con el mensaje de GitHub, para que el modelo lo lea y lo explique. Debe ser `ToolError`:
+  una excepción genérica oculta el mensaje al cliente.
 
 ### agent.py
 
@@ -51,6 +52,8 @@ con el mensaje de GitHub, para que el modelo lo lea y lo explique.
   - `mcp_servers`: lanza `server.py` por stdio con el mismo intérprete de Python.
   - Solo se permiten `search_issues` y `get_issue`; ninguna herramienta integrada
     (sin Bash, sin escritura de archivos). Agente de solo lectura.
+  - Aislado de la configuración local: `tools=[]`, `setting_sources=[]`, `skills=[]`,
+    `strict_mcp_config=True`, así se comporta igual en cualquier fork. `max_turns=15`.
   - Prompt de sistema con la fecha de hoy y el procedimiento de abajo.
 - Modelo: el por defecto del SDK; configurable con `ANTHROPIC_MODEL`
   (y `ANTHROPIC_BASE_URL` para modelos locales / proxies).
@@ -86,7 +89,7 @@ server.py  agent.py  test_server.py  pyproject.toml  README.md  LICENSE  .gitign
 ```
 
 Dependencias: `mcp`, `claude-agent-sdk`, `httpx`. Python ≥ 3.10.
-Instalación: `python -m venv .venv && pip install -e .` (alternativa: `uv sync`).
+Instalación: `uv sync` (alternativa: `python -m venv .venv && pip install -e .`).
 
 ## README
 
