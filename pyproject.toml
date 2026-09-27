@@ -1,0 +1,18 @@
+[project]
+name = "mcp-github-agent"
+version = "0.1.0"
+description = "Servidor MCP + agente que busca issues de GitHub y redacta project updates"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = ["mcp>=2.2", "claude-agent-sdk>=0.2.160", "httpx>=0.28"]
+
+[dependency-groups]
+dev = ["pytest>=9"]
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["server", "agent"]

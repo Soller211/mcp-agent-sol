@@ -283,7 +283,7 @@ print(r['total_count'], [i['number'] for i in r['items']])
 print(json.dumps(server.get_issue('Soller211/customTenisDev', 13), ensure_ascii=False)[:300])
 "
 ```
-Expected: `13 [...]` con los 13 números de PR, y el JSON del PR #13 con `"merged": true`.
+Expected: `12 [...]` (el #8 se mergeó el 2022-11-04, fuera de octubre), y el JSON del PR #13 con `"merged": true`.
 
 - [ ] **Step 6: Prueba del protocolo por stdio (lo que hará el agente)**
 
@@ -404,7 +404,7 @@ Expected: `Uso: python agent.py "..."` y `exit=1`.
 Run: `~/.local/bin/uv run python agent.py "update de Soller211/customTenisDev de octubre 2022" > /tmp/claude-1000/update-2022.md; cat /tmp/claude-1000/update-2022.md`
 Expected:
 - stderr muestra `→ search_issues({...merged:2022-10-01..2022-10-31...})` y una línea `[N turnos · $X]`.
-- El informe tiene la plantilla, "Hecho" lista los 13 PRs con enlaces `[#N](url)`, "📊 Números" dice 13 PRs mergeados.
+- El informe tiene la plantilla, "Hecho" lista 12 PRs con enlaces `[#N](url)` (el #8 se mergeó en noviembre), "📊 Números" dice 12 PRs mergeados.
 - Si falla la autenticación de Claude: el SDK usa las credenciales de Claude Code (`~/.claude/.credentials.json`) o `ANTHROPIC_API_KEY`. Reportar el error exacto al usuario; no cambiar el código para esquivarlo.
 
 - [ ] **Step 4: Ejecución real — pregunta directa**
