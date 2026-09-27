@@ -1,5 +1,6 @@
 """Servidor MCP que expone la búsqueda de issues y PRs de GitHub como herramientas."""
 import os
+import re
 import subprocess
 from functools import cache
 
@@ -10,6 +11,17 @@ from mcp.server.mcpserver.exceptions import ToolError
 mcp = MCPServer("github-updates")
 API = "https://api.github.com"
 BODY_CHARS = 300
+REPO_RE = re.compile(r"(?!\.\.?/)[\w.-]+/(?!\.\.?$)[\w.-]+", re.ASCII)
+# Filtros que amplían la búsqueda fuera del repo (repo:/org:/user:) y operadores lógicos
+# (solo en mayúsculas), que con la búsqueda avanzada de GitHub permiten escapar del filtro repo:.
+SCOPE_ESCAPE_RE = re.compile(r"(?i:\b(?:repo|org|user):)|\b(?:OR|AND|NOT)\b|[()]")
+
+
+def check_repo(repo: str) -> str:
+    """Valida `repo` (lo escribe la IA): evita rutas como "a/b/../../user" hacia otros endpoints."""
+    if not REPO_RE.fullmatch(repo):
+        raise ToolError(f"repo inválido {repo!r}: usa el formato owner/nombre")
+    return repo
 
 
 @cache
@@ -67,11 +79,14 @@ def search_issues(repo: str, query: str = "", limit: int = 30) -> dict:
     repo: "owner/nombre".
     query: filtros de GitHub tal cual. Ejemplos: "is:pr is:merged merged:2022-10-01..2022-10-31",
     "is:issue is:open", "is:issue closed:>=2026-09-20", "label:bug", texto libre.
+    No admite repo:/org:/user:, OR/AND/NOT ni paréntesis: haz una búsqueda por cada consulta.
     limit: máximo de resultados (tope 100).
     Devuelve total_count (total real en GitHub) e items (como mucho `limit`).
     """
+    if SCOPE_ESCAPE_RE.search(query):
+        raise ToolError("query no puede usar repo:/org:/user:, OR/AND/NOT ni paréntesis; el repo va en `repo`")
     # ponytail: una sola página (máx. 100 resultados); paginar con `page` si algún repo lo necesita
-    params = {"q": f"repo:{repo} {query}".strip(), "per_page": max(1, min(limit, 100))}
+    params = {"q": f"repo:{check_repo(repo)} {query}".strip(), "per_page": max(1, min(limit, 100))}
     data = gh_get("/search/issues", params)
     return {"total_count": data["total_count"], "items": [slim(i) for i in data["items"]]}
 
@@ -79,6 +94,7 @@ def search_issues(repo: str, query: str = "", limit: int = 30) -> dict:
 @mcp.tool()
 def get_issue(repo: str, number: int) -> dict:
     """Detalle de un issue o pull request: cuerpo completo y comentarios."""
+    check_repo(repo)
     issue = gh_get(f"/repos/{repo}/issues/{number}")
     comments = gh_get(f"/repos/{repo}/issues/{number}/comments", {"per_page": 100})
     return {

@@ -1,7 +1,9 @@
 import asyncio
 
 import httpx
+import pytest
 from mcp.client.client import Client
+from mcp.server.mcpserver.exceptions import ToolError
 
 import server
 
@@ -47,6 +49,29 @@ def test_search_builds_query_and_caps_limit(monkeypatch):
     assert calls == [("/search/issues", {"q": "repo:o/r is:pr is:merged", "per_page": 100})]
     assert out["total_count"] == 250
     assert [i["number"] for i in out["items"]] == [13, 20]
+
+
+def test_rejects_bad_repo_before_calling_github(monkeypatch):
+    monkeypatch.setattr(server, "gh_get", lambda *a, **k: pytest.fail("no debe llamar a GitHub"))
+    for repo in ["a/b/../../../user?", "a/..", "../b", "a", "a/b/c", "a/b?x=1", "a b/c", ""]:
+        with pytest.raises(ToolError, match="owner/nombre"):
+            server.get_issue(repo, 1)
+        with pytest.raises(ToolError, match="owner/nombre"):
+            server.search_issues(repo)
+
+
+def test_rejects_query_that_escapes_repo(monkeypatch):
+    monkeypatch.setattr(server, "gh_get", lambda *a, **k: pytest.fail("no debe llamar a GitHub"))
+    for query in ["repo:octocat/Hello-World", "is:pr (org:github)", "-user:x", "USER:x",
+                  "is:issue OR is:pr", "bug AND label:x", "NOT is:open"]:
+        with pytest.raises(ToolError, match="query"):
+            server.search_issues("o/r", query)
+
+
+def test_accepts_normal_repo_and_query(monkeypatch):
+    monkeypatch.setattr(server, "gh_get", lambda *a, **k: {"total_count": 0, "items": []})
+    for repo in ["Soller211/customTenisDev", "my.org-1/repo_name.js"]:
+        server.search_issues(repo, "is:pr is:merged merged:2022-10-01..2022-10-31 label:bug myrepo: or")
 
 
 def test_github_error_reaches_mcp_client(monkeypatch):

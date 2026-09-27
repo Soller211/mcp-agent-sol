@@ -33,7 +33,7 @@ git clone https://github.com/Soller211/mcp-github-agent && cd mcp-github-agent
 uv sync                                   # o: python -m venv .venv && .venv/bin/pip install -e .
 ```
 
-**Token de GitHub:** se usa `GITHUB_TOKEN`; si no existe, el de la CLI `gh` (`gh auth login`). Para repos públicos basta un token sin permisos; para privados, permiso de lectura de issues y PRs.
+**Token de GitHub:** se usa `GITHUB_TOKEN`; si no existe, el de la CLI `gh` (`gh auth login`). Recomendado: un token de solo lectura, ver [Seguridad](#seguridad).
 
 **Claude:** el agente usa tu sesión de Claude Code o la variable `ANTHROPIC_API_KEY`. Cada informe consume tokens (unos $0.05–0.10 con el modelo por defecto).
 
@@ -89,7 +89,7 @@ claude mcp add github-updates -- /ruta/absoluta/.venv/bin/python /ruta/absoluta/
 }
 ```
 
-**Probarlo a mano** con el MCP Inspector: `npx @modelcontextprotocol/inspector .venv/bin/python server.py`.
+**Probarlo a mano** con el MCP Inspector: `npx @modelcontextprotocol/inspector@0.15.0 .venv/bin/python server.py` (ciérralo con Ctrl+C al terminar: puede lanzar comandos).
 En WSL, abre `http://localhost:6274` en el navegador de Windows (con `127.0.0.1` la conexión puede ser rechazada).
 
 ### Herramientas
@@ -123,6 +123,25 @@ uv run python agent.py "update semanal de owner/repo"
 ```
 
 Modelos pequeños (7B–14B) suelen fallar al encadenar llamadas a herramientas; usa uno de ~30B o más con buen *tool calling*.
+
+## Seguridad
+
+La IA decide qué herramientas llamar, pero solo dentro de lo que este código permite:
+
+- **Solo lectura.** El servidor solo hace `GET` a `api.github.com` (sin redirecciones) y el agente solo tiene `search_issues` y `get_issue`: sin Bash, sin escritura de archivos (`tools=[]`).
+- **Entradas validadas.** `repo` debe tener formato `owner/nombre` (bloquea rutas como `a/b/../../user`), y `query` no admite `repo:`/`org:`/`user:`, `OR`/`AND`/`NOT` ni paréntesis, que permitirían buscar fuera del repo.
+- **Aislado de tu configuración.** `setting_sources=[]` y `strict_mcp_config=True`: el agente ignora `~/.claude`, `.claude/` del proyecto (y sus *hooks*) y otros servidores MCP.
+- **Contenido no confiable.** Issues y comentarios los escribe cualquiera y pueden intentar *prompt injection*. El prompt le indica tratarlos como datos; al ser de solo lectura, lo peor posible es un informe engañoso. **Revisa el informe antes de publicarlo.**
+
+**Usa un token de mínimo privilegio.** El token de `gh` suele tener permisos de escritura y administración. Crea un [fine-grained token](https://github.com/settings/personal-access-tokens/new) con acceso solo a los repos que quieras y permisos *Issues: Read* y *Pull requests: Read*, y expórtalo:
+
+```bash
+export GITHUB_TOKEN=github_pat_...
+```
+
+Así, aunque el código cambiara, GitHub no permitiría escribir ni leer otros repos.
+
+Lo que el agente envía al modelo (títulos, cuerpos y comentarios de issues) sale de tu máquina hacia Anthropic, o hacia el servidor del modelo que configures.
 
 ## Límites y siguientes pasos
 
