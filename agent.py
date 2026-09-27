@@ -29,7 +29,8 @@ Si te piden un update o informe:
 ## 📊 Números
 
 Cada punto enlaza su número con formato [#N](url). Si una sección no tiene nada, escribe "Nada.".
-No inventes nada que no venga de las herramientas.
+En "📊 Números" pon solo conteos (PRs mergeados, issues cerrados, PRs abiertos, issues abiertos, y por autor si aplica), sin observaciones.
+No inventes nada que no venga de las herramientas: nada de generalizaciones ("todos...", "ninguno...") que no hayas comprobado item por item.
 
 Si la petición es una pregunta y no un informe, respóndela directamente, sin plantilla.
 Tu respuesta final es solo el resultado, sin comentarios sobre el proceso."""
