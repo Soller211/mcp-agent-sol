@@ -1,4 +1,4 @@
-# mcp-github-agent
+# mcp-agent-sol
 
 Un **servidor MCP** que da a una IA acceso de lectura a los issues y pull requests de GitHub, y un **agente** (Claude Agent SDK) que lo usa para redactar *project updates* automáticamente.
 
@@ -29,7 +29,7 @@ La separación es la idea clave: **el servidor sabe *cómo* acceder a GitHub; el
 Requisitos: Python ≥ 3.10 y un token de GitHub.
 
 ```bash
-git clone https://github.com/Soller211/mcp-github-agent && cd mcp-github-agent
+git clone https://github.com/Soller211/mcp-agent-sol && cd mcp-agent-sol
 uv sync                                   # o: python -m venv .venv && .venv/bin/pip install -e .
 ```
 
